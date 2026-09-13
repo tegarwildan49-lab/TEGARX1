@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Simulator Rakit Topologi Jaringan Lengkap</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#0d1117;color:#d0d7de;font-family:Arial,sans-serif;padding:10px}
+.container{max-width:1100px;margin:auto}
+.card{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:12px;margin-bottom:10px}
+h1{margin:0 0 8px;color:#58a6ff;font-size:20px}
+h2{font-size:14px;margin:10px 0 6px;color:#8b949e}
+.row{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+select,.btn{background:#21262d;color:#fff;border:1px solid #30363d;border-radius:7px;padding:8px 10px;font-weight:bold}
+.btn{cursor:pointer}.btn:hover{border-color:#58a6ff}.btn.active{background:#1f6feb;border-color:#58a6ff}
+.add{background:#238636;border-color:#238636}.danger{background:#da3633;border-color:#da3633}
+#status{padding:11px;border:2px solid #30363d;border-radius:8px;text-align:center;font-weight:bold;margin-bottom:10px}
+.info{color:#58a6ff}.success{color:#56d364;border-color:#238636!important;background:#132e1b}
+.error{color:#ff7b72;border-color:#da3633!important;background:#2b1617}
+#board{height:500px;position:relative;background:#010409;border:2px solid #30363d;border-radius:12px;overflow:hidden;touch-action:none}
+svg{position:absolute;inset:0;width:100%;height:100%;z-index:1}
+line{stroke:#8b949e;stroke-width:4;stroke-linecap:round}
+line.valid{stroke:#238636} line.invalid{stroke:#da3633;stroke-dasharray:7 6}
+.edgeLabel{font-size:10px;font-weight:bold;paint-order:stroke;stroke:#010409;stroke-width:4px;cursor:pointer}
+.edgeLabel.valid{fill:#56d364}.edgeLabel.invalid{fill:#ff7b72}
+.node{position:absolute;width:76px;height:72px;border-radius:12px;background:#161b22;border:2px solid #30363d;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2;cursor:grab;user-select:none;touch-action:none}
+.node.selected{border-color:#58a6ff;box-shadow:0 0 12px #58a6ff}
+.nodeIcon{font-size:22px}.nodeLabel{font-size:9px;color:#c9d1d9;margin-top:2px;text-align:center}
+.port{font-size:8px;color:#8b949e}
+.del-node{position:absolute;top:-6px;right:-6px;background:#da3633;color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-weight:bold;line-height:1}
+#tools{max-height:190px;overflow:auto}
+small{color:#8b949e}
+.actions{display:flex;gap:8px;margin-top:10px}.actions .btn{flex:1;padding:13px}
+.legend{font-size:11px;color:#8b949e;margin-top:7px}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="card">
+<h1>🌐 Simulator Rakit Topologi Jaringan</h1>
+<div class="row">
+<label><b>Topologi:</b></label>
+<select id="topology">
+<option value="Custom">Custom / Sandbox</option>
+<option value="Star">Star</option><option value="Bus">Bus</option>
+<option value="Ring">Ring</option><option value="Mesh">Mesh</option>
+<option value="Tree">Tree</option><option value="Point-to-Point">Point-to-Point</option>
+<option value="Extended-Star">Extended Star</option><option value="Hybrid">Hybrid</option>
+</select>
+<button class="btn" onclick="loadPreset()">Muat Topologi</button>
+<button class="btn danger" onclick="clearAllNodes()">Hapus Semua Perangkat</button>
+</div>
+
+<h2>1. Tambahkan Perangkat</h2>
+<div class="row" id="tools">
+<button class="btn add" onclick="addNode('PC','💻')">+ PC</button>
+<button class="btn add" onclick="addNode('Laptop','💻')">+ Laptop</button>
+<button class="btn add" onclick="addNode('Server','🖥️')">+ Server</button>
+<button class="btn add" onclick="addNode('Switch','🔀')">+ Switch</button>
+<button class="btn add" onclick="addNode('Hub','🔌')">+ Hub</button>
+<button class="btn add" onclick="addNode('Router','📡')">+ Router</button>
+<button class="btn add" onclick="addNode('Modem','📟')">+ Modem</button>
+<button class="btn add" onclick="addNode('Access Point','📶')">+ Access Point</button>
+<button class="btn add" onclick="addNode('Repeater','📡')">+ Repeater</button>
+<button class="btn add" onclick="addNode('Bridge','🌉')">+ Bridge</button>
+<button class="btn add" onclick="addNode('Firewall','🛡️')">+ Firewall</button>
+<button class="btn add" onclick="addNode('Printer','🖨️')">+ Printer</button>
+<button class="btn add" onclick="addNode('IP Phone','☎️')">+ IP Phone</button>
+<button class="btn add" onclick="addNode('Patch Panel','🧩')">+ Patch Panel</button>
+<button class="btn add" onclick="addNode('Terminator','🛑')">+ Terminator</button>
+</div>
+
+<h2>2. Pilih Kabel</h2>
+<div class="row" id="cables">
+<button class="btn" onclick="selectCable('UTP Straight',this)">UTP Straight</button>
+<button class="btn" onclick="selectCable('UTP Crossover',this)">UTP Crossover</button>
+<button class="btn" onclick="selectCable('Fiber Optic',this)">Fiber Optic</button>
+<button class="btn" onclick="selectCable('Coaxial',this)">Coaxial</button>
+<button class="btn" onclick="selectCable('Serial',this)">Serial</button>
+<button class="btn" onclick="selectCable('Console',this)">Console</button>
+<button class="btn" onclick="selectCable('USB',this)">USB</button>
+</div>
+<div class="legend">Cara main: pilih kabel → klik perangkat A → klik perangkat B. Geser perangkat dengan drag mouse/sentuhan. Klik tombol ✕ pada perangkat untuk menghapus.</div>
+</div>
+
+<div id="status" class="info">Tambahkan perangkat atau pilih preset topologi.</div>
+<div id="board"><svg id="svg"></svg></div>
+<div class="actions">
+<button class="btn" onclick="checkNetwork()">📡 Uji Tes Koneksi</button>
+<button class="btn danger" onclick="resetBoard()">🗑️ Reset</button>
+</div>
+</div>
+
+<script>
+let nodes=[],edges=[],activeCable=null,selected=null,idCounter=0;
+
+const validRules=[
+["PC","Switch","UTP Straight"],["Laptop","Switch","UTP Straight"],["Server","Switch","UTP Straight"],
+["PC","Hub","UTP Straight"],["Laptop","Hub","UTP Straight"],["Server","Hub","UTP Straight"],
+["Switch","Router","UTP Straight"],["Switch","Router","Fiber Optic"],
+["Router","Router","Serial"],["Router","Router","UTP Crossover"],["Router","Router","Fiber Optic"],
+["Switch","Switch","UTP Crossover"],["Switch","Switch","Fiber Optic"],
+["PC","PC","UTP Crossover"],["Laptop","Laptop","UTP Crossover"],["PC","Laptop","UTP Crossover"],
+["Laptop","PC","UTP Crossover"],["Router","Modem","UTP Straight"],["Modem","Router","UTP Straight"],
+["PC","Router","UTP Straight"],["Laptop","Router","UTP Straight"],
+["Access Point","Switch","UTP Straight"],["Access Point","Router","UTP Straight"],
+["Repeater","Switch","UTP Straight"],["Repeater","Hub","UTP Straight"],
+["Bridge","Switch","UTP Straight"],["Bridge","Bridge","UTP Crossover"],
+["Firewall","Router","UTP Straight"],["Firewall","Switch","UTP Straight"],
+["IP Phone","Switch","UTP Straight"],["Printer","Switch","UTP Straight"],
+["Patch Panel","Switch","UTP Straight"],["PC","Patch Panel","UTP Straight"],
+["Laptop","Patch Panel","UTP Straight"],["Server","Patch Panel","UTP Straight"],
+["PC","Router","Console"],["Laptop","Router","Console"],["Router","Router","Console"],
+["PC","Modem","USB"],["Laptop","Modem","USB"],
+["Modem","Modem","Coaxial"],
+["PC","PC","Coaxial"],["Laptop","Laptop","Coaxial"],["Server","Server","Coaxial"],
+["Terminator","PC","Coaxial"],["Terminator","Laptop","Coaxial"],["Terminator","Server","Coaxial"]
+];
+
+function pairValid(a,b,c){
+ return validRules.some(r=>(r[0]===a&&r[1]===b&&r[2]===c)||(r[0]===b&&r[1]===a&&r[2]===c));
+}
+
+function addNode(type,icon,x=null,y=null){
+ idCounter++;
+ const board=document.getElementById("board");
+ x=x??Math.max(20,Math.random()*(board.clientWidth-100));
+ y=y??Math.max(20,Math.random()*(board.clientHeight-90));
+ nodes.push({id:idCounter,type,icon,label:type,x,y});
+ render();
+ status("Perangkat "+type+" berhasil ditambahkan.","info");
+}
+
+function deleteNode(id,ev){
+ if(ev) ev.stopPropagation();
+ nodes=nodes.filter(n=>n.id!==id);
+ edges=edges.filter(e=>e.a.id!==id&&e.b.id!==id);
+ if(selected?.id===id) selected=null;
+ render();
+ status("Perangkat telah dihapus.","info");
+}
+
+function clearAllNodes(){
+ nodes=[];
+ edges=[];
+ selected=null;
+ activeCable=null;
+ render();
+ status("Semua perangkat telah dihapus.","info");
+}
+
+function loadPreset(){
+ nodes=[];edges=[];selected=null;idCounter=0;activeCable=null;
+ const t=document.getElementById("topology").value;
+ if(t==="Star"){
+  addNode("Switch","🔀",470,210);
+  [[110,80],[280,60],[650,60],[800,160],[180,350],[680,350]].forEach(p=>addNode("PC","💻",...p));
+  status("Star: sambungkan semua PC ke Switch.","info");
+ }else if(t==="Bus"){
+  addNode("Terminator","🛑",30,205);
+  [[170,205],[350,205],[530,205],[710,205]].forEach(p=>addNode("PC","💻",...p));
+  addNode("Terminator","🛑",890,205);
+  status("Bus: sambungkan PC secara berurutan menggunakan kabel Coaxial, lalu pasang Terminator di kedua ujungnya.","info");
+ }else if(t==="Ring"){
+  [[450,45],[700,160],[610,350],[290,350],[200,160]].forEach(p=>addNode("PC","💻",...p));
+  status("Ring: sambungkan PC membentuk lingkaran.","info");
+ }else if(t==="Mesh"){
+  [[250,90],[650,90],[650,330],[250,330]].forEach(p=>addNode("Router","📡",...p));
+  status("Mesh: setiap Router harus terhubung ke semua Router lain.","info");
+ }else if(t==="Tree"){
+  addNode("Router","📡",450,40); addNode("Switch","🔀",280,170); addNode("Switch","🔀",620,170);
+  [[160,320],[300,320],[540,320],[700,320]].forEach(p=>addNode("PC","💻",...p));
+  status("Tree: Router → Switch → PC.","info");
+ }else if(t==="Point-to-Point"){
+  addNode("PC","💻",170,210); addNode("PC","💻",700,210);
+  status("Point-to-Point: hubungkan dua perangkat secara langsung.","info");
+ }else if(t==="Extended-Star"){
+  addNode("Switch","🔀",450,220); addNode("Switch","🔀",230,370); addNode("Switch","🔀",670,370);
+  [[80,80],[250,70],[570,70],[820,80]].forEach(p=>addNode("PC","💻",...p));
+  status("Extended Star: switch pusat terhubung ke switch cabang, lalu ke PC.","info");
+ }else if(t==="Hybrid"){
+  addNode("Router","📡",450,210); addNode("Switch","🔀",250,330); addNode("Switch","🔀",650,330);
+  [[80,80],[250,70],[650,70],[820,80]].forEach(p=>addNode("PC","💻",...p));
+  status("Hybrid: gabungan struktur jaringan. Hubungkan semua perangkat yang diperlukan.","info");
+ }else status("Custom: tambahkan perangkat dan rakit bebas.","info");
+ render();
+}
+
+function selectCable(c,el){
+ activeCable=c; document.querySelectorAll("#cables .btn").forEach(b=>b.classList.remove("active"));
+ el.classList.add("active"); status("Kabel aktif: "+c+". Klik dua perangkat.","info");
+}
+
+function render(){
+ const board=document.getElementById("board");
+ board.querySelectorAll(".node").forEach(e=>e.remove());
+ nodes.forEach(n=>{
+  const e=document.createElement("div");e.className="node"+(selected?.id===n.id?" selected":"");
+  e.style.left=n.x+"px";e.style.top=n.y+"px";
+  e.innerHTML=`<div class="del-node" onclick="deleteNode(${n.id},event)">✕</div>
+               <div class="nodeIcon">${n.icon}</div>
+               <div class="nodeLabel">${n.label}</div>
+               <div class="port">${n.type==='Terminator'?'BNC':'Port RJ45'}</div>`;
+  drag(e,n); 
+  e.onclick=ev=>{ev.stopPropagation();nodeClick(n)}; 
+  board.appendChild(e);
+ });
+ drawEdges();
+}
+
+function nodeClick(n){
+ if(!activeCable){status("⚠️ Pilih kabel dulu.","error");return}
+ if(!selected){selected=n;render();status(n.label+" dipilih. Klik perangkat tujuan.","info");return}
+ if(selected.id===n.id){selected=null;render();return}
+ if(edges.some(e=>(e.a.id===selected.id&&e.b.id===n.id)||(e.a.id===n.id&&e.b.id===selected.id))){
+  status("⚠️ Kabel antara perangkat ini sudah ada.","error");selected=null;render();return
+ }
+ const ok=pairValid(selected.type,n.type,activeCable);
+ edges.push({a:selected,b:n,cable:activeCable,valid:ok});
+ status(ok?"✅ Koneksi kabel valid.":"❌ Kombinasi perangkat/kabel tidak sesuai.",ok?"success":"error");
+ selected=null;render();
+}
+
+function drawEdges(){
+ const svg=document.getElementById("svg");svg.innerHTML="";
+ edges.forEach((e,i)=>{
+  const x1=e.a.x+38,y1=e.a.y+36,x2=e.b.x+38,y2=e.b.y+36;
+  const line=document.createElementNS("http://www.w3.org/2000/svg","line");
+  line.setAttribute("x1",x1);line.setAttribute("y1",y1);line.setAttribute("x2",x2);line.setAttribute("y2",y2);
+  line.classList.add(e.valid?"valid":"invalid");line.onclick=()=>{edges.splice(i,1);drawEdges()};
+  svg.appendChild(line);
+  const tx=document.createElementNS("http://www.w3.org/2000/svg","text");
+  tx.setAttribute("x",(x1+x2)/2);tx.setAttribute("y",(y1+y2)/2-5);tx.setAttribute("text-anchor","middle");
+  tx.classList.add("edgeLabel",e.valid?"valid":"invalid");tx.textContent=e.valid?"✓ "+e.cable:"✕ "+e.cable;
+  tx.onclick=()=>{edges.splice(i,1);drawEdges()};svg.appendChild(tx);
+ });
+}
+
+function drag(el,n){
+ let down=false,ox=0,oy=0;
+ el.onpointerdown=e=>{
+  if(e.target.classList.contains("del-node")) return;
+  down=true;ox=e.clientX-n.x;oy=e.clientY-n.y;el.setPointerCapture(e.pointerId);
+ };
+ el.onpointermove=e=>{
+  if(!down)return;
+  n.x=Math.max(0,Math.min(document.getElementById("board").clientWidth-78,e.clientX-ox));
+  n.y=Math.max(0,Math.min(document.getElementById("board").clientHeight-74,e.clientY-oy));
+  el.style.left=n.x+"px";el.style.top=n.y+"px";drawEdges();
+ };
+ el.onpointerup=()=>down=false;
+}
+
+function checkNetwork(){
+ if(nodes.length<2){status("🔴 DISCONNECTED: minimal 2 perangkat.","error");return}
+ if(edges.length===0){status("🔴 DISCONNECTED: belum ada kabel.","error");return}
+ const bad=edges.filter(e=>!e.valid);if(bad.length){status("🔴 DISCONNECTED: ada kabel/koneksi yang salah.","error");return}
+ const adj={};nodes.forEach(n=>adj[n.id]=[]);
+ edges.forEach(e=>{adj[e.a.id].push(e.b.id);adj[e.b.id].push(e.a.id)});
+ let seen=new Set([nodes[0].id]),q=[nodes[0].id];
+ while(q.length){const u=q.shift();adj[u].forEach(v=>{if(!seen.has(v)){seen.add(v);q.push(v)}})}
+ if(seen.size===nodes.length){status("🟢 CONNECTED! Semua perangkat berhasil terhubung.","success");packetAnimation()}
+ else status("🔴 DISCONNECTED: masih ada perangkat yang terpisah.","error");
+}
+
+function packetAnimation(){
+ const svg=document.getElementById("svg");
+ edges.forEach(e=>{
+  const c=document.createElementNS("http://www.w3.org/2000/svg","circle");c.setAttribute("r",6);c.setAttribute("fill","#00f0ff");svg.appendChild(c);
+  let p=0;const timer=setInterval(()=>{p+=.03;if(p>1)p=0;c.setAttribute("cx",(1-p)*(e.a.x+38)+p*(e.b.x+38));c.setAttribute("cy",(1-p)*(e.a.y+36)+p*(e.b.y+36))},30);
+  setTimeout(()=>{clearInterval(timer);c.remove()},4000);
+ });
+}
+
+function status(t,c){const s=document.getElementById("status");s.textContent=t;s.className=c}
+function resetBoard(){loadPreset()}
+
+// Memulai dalam mode Custom/Sandbox kosong
+clearAllNodes();
+</script>
+</body>
+</html>
